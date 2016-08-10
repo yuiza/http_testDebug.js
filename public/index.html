@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+<head
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+	<script type="text/javascript" src="https://skyway.io/dist/0.3/peer.js"></script>
+
+</head>
+<body>
+	<form id="connect">
+		<strong>connect to broker</strong><br>
+		<label>your id:</label><input type="text" name="myid">
+		<button type="submit" id="connect_submit">connect to broker</button>
+	</form>
+	<form id="call">
+		<strong>call to peer</strong><br>
+		<label>remote peer id:</label><input type="text" name="remoteid">
+		<button type="submit" id="call_submit">call</button>
+	</form>
+	<form id="chat">
+		<strong>chat</strong><br>
+		<input type="text">
+		<button type="submit">send</button>
+	</form>
+    <strong>time</strong><br>
+    <button type="button" id="time">start</button><br>
+    <button type="button" id="debug">debug</button>
+	<div>
+		<dl>
+		</dl>
+	</div>
+
+	<script>
+    var conn_case = new Map();
+    var peer_, conn_;
+    var t0 = null;
+    var id = null;
+    var storage = {};
+	var enableForm_ = function(id) {
+		$("form").each(function(e){
+			$(this).find("button").attr("disabled", $(this).attr("id") === id ? false : "disabled");
+		})
+	}
+	var setupForRemote_ = function(conn) {
+        if(t0){
+            var time = performance.now() - t0;
+            var log = 'connect:' + time;
+            console.log(log);
+            t0 = null;
+        }else{
+            console.log('connection');
+        }
+
+		if(!!conn){
+            conn_case.set(conn.peer, conn);
+            conn_ = conn;
+        } 
+		enableForm_("chat");
+		conn_.on("data", function(data){
+		        console.log('recived data:', data);
+            if(data.status === 'offer'){
+                conn_.send({
+                    peer: id,
+                    status: 'reply'
+                });
+            }else if(data.status === 'offers'){
+                conn_.send({
+                    peer: id,
+                    status: 'replys'
+                });
+            }else if(data.status === 'reply'){
+                showChat_( data.peer + ' rtt', performance.now() - t0 );
+            }else if(data.status === 'replys'){
+                var time = performance.now() - storage[data.peer];
+                var log = data.peer + ':' + time;
+                console.log(log);
+            }else{
+                showChat_(conn_.peer, data)
+            }
+		});
+	}
+	var showChat_ = function(id, mesg) {
+		$("<dt>"+id+"</dt><dd>"+mesg+"</dd>").appendTo("dl")
+	}
+	$("form#connect").submit(function(e){
+		e.preventDefault();
+		$(this).find("button").attr("disabeld", "disabled")
+		id = $(this).find("input[name=myid]").val();
+		peer_ = Peer(id, { 
+			key: "6f893fe8-26fb-445a-b0d2-e9d693b247d0"
+		});
+		peer_.on('connection', setupForRemote_);
+		enableForm_("call")
+	})
+	$("form#call").submit(function(e){
+		e.preventDefault();
+		var id = $(this).find("input[name=remoteid]").val();
+
+        t0 = performance.now();
+
+		conn_ = peer_.connect(id, {"serialization": "binary-utf8"});
+		conn_.on('open', setupForRemote_);
+        conn_case.set(conn_.peer, conn_);
+	})
+	$("form#chat").submit(function(e){
+		e.preventDefault();
+		var mesg = $(this).find("input").val();
+		showChat_("me", mesg)
+		conn_.send(mesg)
+	})
+    $("button#time").click(function(e){
+        var id = $("input[name=remoteid]").val();
+        var _conn = conn_case.get(id);
+        console.log(id, _conn);
+        t0 = performance.now();
+        _conn.send({
+            peer: id,
+            status: 'offer'
+        });
+    })
+    $("button#debug").click(function(e){
+        var entries = conn_case.entries();
+        t0 = performance.now();
+        for (var entry of entries) {
+            storage[entry[0]] = performance.now();
+            entry[1].send({
+                peer: id,
+                status: 'offers'
+            });
+        }
+    })
+	function init(){
+		enableForm_("connect")
+	}
+	init();
+	</script>
+
+
+
+</body>
+</html>
