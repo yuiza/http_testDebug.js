@@ -1,0 +1,30 @@
+{
+  "name": "http-testsrv",
+  "version": "1.0.0",
+  "description": "heroku test web server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "*"
+  },
+  "engines": {
+    "node": "6.1.0",
+    "npm": "3.9.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yuiza/http_testDebug.js.git"
+  },
+  "keywords": [
+    "heroku"
+  ],
+  "author": "yuiza",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yuiza/http_testDebug.js/issues"
+  },
+  "homepage": "https://github.com/yuiza/http_testDebug.js#readme"
+}
